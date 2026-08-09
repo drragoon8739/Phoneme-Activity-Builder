@@ -1,0 +1,73 @@
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.group {
+  border: 1px solid var(--line);
+}
+
+.legend {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  padding-inline: var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 700px) {
+  .options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--card-sunk);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.option:hover {
+  border-color: var(--brand);
+}
+
+.option input {
+  margin-top: 0.3em;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--brand);
+  flex-shrink: 0;
+}
+
+.option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionOn {
+  border-color: var(--brand);
+  border-width: 2px;
+  background: var(--brand-soft);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}

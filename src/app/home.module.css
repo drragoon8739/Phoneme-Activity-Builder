@@ -1,0 +1,108 @@
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  align-items: center;
+  padding-block: var(--space-4) var(--space-2);
+}
+
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: 1.15fr 1fr;
+    gap: var(--space-7);
+  }
+}
+
+.title {
+  margin-bottom: var(--space-4);
+}
+
+.heroPanel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow);
+}
+
+.heroNote {
+  margin-top: var(--space-4);
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+/* Steps — numbered because the workflow really is a sequence. */
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  counter-reset: step;
+}
+
+@media (min-width: 780px) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.step {
+  border-top: 2px solid var(--line-strong);
+  padding-top: var(--space-3);
+}
+
+.step h3 {
+  font-size: var(--step-1);
+  margin-bottom: var(--space-2);
+}
+
+.step p {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.stepNumber {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  letter-spacing: 0.12em;
+  color: var(--brand);
+  margin-bottom: var(--space-2);
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 780px) {
+  .tools {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tagline {
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+.toolLink {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  text-decoration: none;
+}
