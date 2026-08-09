@@ -1,0 +1,40 @@
+.strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: var(--tile-size);
+  align-items: center;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.english {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.english strong {
+  color: var(--correct);
+}
+
+.equals {
+  color: var(--muted);
+}
+
+.hidden {
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  color: var(--muted);
+}

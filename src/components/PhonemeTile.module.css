@@ -1,0 +1,142 @@
+.tile {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1em;
+  min-width: var(--tile-size);
+  min-height: var(--tile-size);
+  padding: 0.2em 0.35em;
+  background: var(--card-sunk);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  line-height: 1;
+  font: inherit;
+}
+
+.glyph {
+  font-family: var(--font-ipa);
+  font-size: 1.25em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gloss {
+  font-family: var(--font-display);
+  font-size: 0.625em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Sizes -------------------------------------------------------------------- */
+.sm {
+  min-width: calc(var(--tile-size) * 0.72);
+  min-height: calc(var(--tile-size) * 0.72);
+  font-size: var(--step--1);
+}
+
+.md {
+  font-size: var(--step-0);
+}
+
+.lg {
+  min-width: calc(var(--tile-size) * 1.25);
+  min-height: calc(var(--tile-size) * 1.25);
+  font-size: var(--step-1);
+}
+
+/* Interactive -------------------------------------------------------------- */
+.interactive {
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition),
+    background var(--transition);
+}
+
+.interactive:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.interactive:active {
+  transform: translateY(1px);
+}
+
+.interactive:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.selected {
+  border-color: var(--brand);
+  border-width: 2px;
+  background: var(--brand-soft);
+}
+
+/* Wordle feedback ---------------------------------------------------------- */
+.correct {
+  background: var(--correct-soft);
+  border-color: var(--correct);
+  box-shadow: inset 0 0 0 2px var(--correct);
+}
+
+.present {
+  background: var(--present-soft);
+  border-color: var(--present);
+  box-shadow: inset 0 0 0 2px var(--present);
+}
+
+.absent {
+  background: var(--absent-soft);
+  border-color: var(--absent);
+  color: var(--muted);
+}
+
+/* Hint bubble -------------------------------------------------------------- */
+.hint {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  white-space: nowrap;
+  padding: 0.35em 0.6em;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  line-height: 1.3;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition);
+  pointer-events: none;
+}
+
+.hint::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+
+.hintIpa {
+  font-family: var(--font-ipa);
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.tile:hover > .hint,
+.tile:focus-visible > .hint,
+.tile:focus-within > .hint {
+  opacity: 1;
+  visibility: visible;
+}
