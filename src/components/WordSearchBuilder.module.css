@@ -1,0 +1,185 @@
+.panelTitle {
+  font-size: var(--step-2);
+}
+
+.previewHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+
+.fieldset legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.segment {
+  flex: 1;
+  font: inherit;
+  font-size: var(--step--1);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  background: var(--card-sunk);
+  color: var(--muted);
+  border: 0;
+  border-right: 1px solid var(--line-strong);
+  cursor: pointer;
+}
+
+.segment:last-child {
+  border-right: 0;
+}
+
+.segmentOn {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.wordPicker {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  max-height: 15rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card-sunk);
+}
+
+.wordPicker li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+}
+
+.wordPicker input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--brand);
+  flex-shrink: 0;
+}
+
+.wordPicker label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: var(--step--1);
+  width: 100%;
+}
+
+.pickerIpa {
+  font-family: var(--font-ipa);
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.checkboxRow,
+.radioRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.checkboxRow input,
+.radioRow input {
+  margin-top: 0.35em;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--brand);
+  flex-shrink: 0;
+}
+
+.checkboxRow label,
+.radioRow label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--space-5) 0 var(--space-4);
+}
+
+/* Preview grid ------------------------------------------------------------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(1.75rem, 1fr));
+  gap: 3px;
+  margin-bottom: var(--space-5);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  font-family: var(--font-ipa);
+  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  font-weight: 600;
+  background: var(--card-sunk);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+.solution {
+  background: var(--correct-soft);
+  border-color: var(--correct);
+  color: var(--correct);
+}
+
+.listHeading {
+  font-size: var(--step-1);
+  margin-bottom: var(--space-3);
+}
+
+.wordList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.wordItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card-sunk);
+}
+
+.wordEnglish {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.wordTiles {
+  display: flex;
+  gap: var(--space-1);
+}
