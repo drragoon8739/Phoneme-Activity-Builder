@@ -159,3 +159,17 @@ a stray character cannot silently break a puzzle.
 
 Database, stored word lists, rotating word selection, teacher accounts, and
 audio playback. Assessment 2 introduces the word list and database.
+
+## References
+
+Meta Platforms. (n.d.). *Passing props to a component*. React. https://react.dev/learn/passing-props-to-a-component
+
+Moore, B. (n.d.). *Introduction to Australian English*. Oxford English Dictionary. https://www.oed.com/discover/introduction-to-australian-english
+
+Nielsen, J. (1994). *10 usability heuristics for user interface design*. Nielsen Norman Group. https://www.nngroup.com/articles/ten-usability-heuristics/
+
+NSW Department of Education. (2026). *Phonics*. https://education.nsw.gov.au/teaching-and-learning/curriculum/literacy-and-numeracy/teaching-and-learning-resources/literacy/effective-reading-in-the-early-years-of-school/phonics
+
+Vercel. (n.d.). *Server and Client Components*. Next.js. https://nextjs.org/docs/app/getting-started/server-and-client-components
+
+World Wide Web Consortium. (2024). *Web content accessibility guidelines (WCAG) 2.2*. https://www.w3.org/TR/WCAG22/
