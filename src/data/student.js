@@ -14,9 +14,9 @@ export const STUDENT = {
   institution: 'La Trobe University',
   // Paste the share link for your walkthrough video (YouTube unlisted,
   // OneDrive, Google Drive, etc.). Leave blank to hide the embed.
-  videoUrl: '',
+  videoUrl: 'https://www.youtube.com/embed/4pxBZUdfhkM',
   // Paste your public repository URL.
-  repoUrl: '',
+  repoUrl: 'https://github.com/drragoon8739/Phoneme-Activity-Builder',
 };
 
 export const STUDENT_CREDIT = `${STUDENT.name} · ${STUDENT.studentNumber}`;
