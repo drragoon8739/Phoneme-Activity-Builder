@@ -7,8 +7,8 @@
  */
 
 export const STUDENT = {
-  name: 'Your Name',
-  studentNumber: '00000000',
+  name: 'David Huynh',
+  studentNumber: '22428106',
   subject: 'Frontend Design and Usability',
   assessment: 'Assessment 1',
   institution: 'La Trobe University',
