@@ -1,0 +1,95 @@
+.panelTitle { font-size: var(--step-2); }
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.listNav { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.listButton {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--card-sunk);
+  min-height: 44px;
+}
+
+.listButton:hover { border-color: var(--brand); }
+
+.listButtonOn {
+  border-color: var(--brand);
+  border-width: 2px;
+  background: var(--brand-soft);
+}
+
+.listName { font-family: var(--font-display); font-weight: 600; }
+.listMeta { font-size: var(--step--1); color: var(--muted); }
+
+.rule { border: 0; border-top: 1px solid var(--line); margin: var(--space-5) 0 var(--space-4); }
+
+.formTitle { font-size: var(--step-1); margin-bottom: var(--space-3); }
+
+.table { width: 100%; border-collapse: collapse; margin-bottom: var(--space-4); }
+
+.table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.editing { background: var(--brand-soft); }
+
+.hintText { display: block; font-size: var(--step--1); color: var(--muted); }
+
+.tileRow { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); }
+
+.actions { display: flex; gap: var(--space-2); justify-content: flex-end; flex-wrap: wrap; }
+
+.actions .btn { padding: var(--space-2) var(--space-3); }
+
+.composer {
+  padding: var(--space-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--card-sunk);
+  min-height: 3.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.fieldError {
+  font-size: var(--step--1);
+  color: var(--present);
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .table thead { display: none; }
+  .table tr { display: block; border-bottom: 1px solid var(--line); padding: var(--space-2) 0; }
+  .table td { display: block; border: 0; padding: var(--space-1) 0; }
+  .actions { justify-content: flex-start; }
+}
