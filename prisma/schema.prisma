@@ -1,0 +1,199 @@
+// Phoneme Activity Builder — database schema
+//
+// The central design problem is that a phoneme is not a character. Symbols such
+// as /tʃ/, /ɐː/ and /əʉ/ occupy two or three UTF-16 code units, so a word can
+// never be stored as a string that is split per character. Every approach below
+// follows from that:
+//
+//   * Phonemes live in their own table, keyed by the IPA symbol as a whole
+//     string. Character length is irrelevant because a symbol is never split.
+//   * A word is an ORDERED SEQUENCE of phonemes, modelled as rows in the
+//     WordPhoneme join table with an explicit `position`. One row is one
+//     phoneme, whatever its character length.
+//   * That also makes phoneme use queryable: "every word containing /ʃ/" is a
+//     join, not a substring search — and a substring search would be wrong,
+//     since /ʃ/ appears inside no other symbol but /t/ appears inside /tʃ/.
+//
+// SQLite is the provider: the whole point of this tool is that a teacher can
+// run it locally or in a container without provisioning a database server.
+// Note that SQLite via Prisma does not support native enums, so constrained
+// fields are stored as String and validated at the API boundary with Zod
+// (see src/lib/validation.js). The allowed values are documented on each field.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// The phoneme inventory (broad HCE / Australian English).
+/// Reference data: seeded once, then read by every other part of the app.
+model Phoneme {
+  id Int @id @default(autoincrement())
+
+  /// The IPA symbol as a single indivisible unit, e.g. "t", "tʃ", "ɐː", "əʉ".
+  /// Unique, so a word can never reference two different rows for one sound.
+  ipa String @unique
+
+  /// Plain-English equivalence shown on the tile, e.g. "CH".
+  label String
+
+  /// Example word for the hover/focus hint, e.g. "chin" → "CH (as in chin)".
+  example String
+
+  /// Keyboard grouping, e.g. "Plosives", "Vowels", "Diphthongs".
+  group String
+
+  /// "consonant" or "vowel".
+  type String
+
+  /// Position in the keyboard layout, so the UI order lives with the data.
+  sortOrder Int
+
+  uses WordPhoneme[]
+
+  @@index([group])
+}
+
+/// A named collection of words a teacher can build activities from.
+model WordList {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+
+  words      Word[]
+  activities Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A single word: its English spelling plus its ordered phoneme sequence.
+model Word {
+  id Int @id @default(autoincrement())
+
+  /// English spelling, revealed to the student only once the answer is correct.
+  english String
+
+  /// Optional teacher-authored clue shown during the activity.
+  hint String?
+
+  /// Optional private note for the teacher; never rendered into an activity.
+  notes String?
+
+  wordListId Int
+  wordList   WordList @relation(fields: [wordListId], references: [id], onDelete: Cascade)
+
+  /// The ordered phoneme sequence. Read with `orderBy: { position: 'asc' }`.
+  phonemes WordPhoneme[]
+
+  /// Activities that use this word as their fixed Wordle target.
+  targetedBy Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// The same spelling may appear in different lists, but not twice in one.
+  @@unique([wordListId, english])
+  @@index([wordListId])
+}
+
+/// One phoneme at one position in one word — the ordered join.
+/// This is the table that makes multi-character symbols safe.
+model WordPhoneme {
+  id Int @id @default(autoincrement())
+
+  wordId Int
+  word   Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  phonemeId Int
+  phoneme   Phoneme @relation(fields: [phonemeId], references: [id], onDelete: Restrict)
+
+  /// Zero-based index of this phoneme within the word.
+  position Int
+
+  /// A word cannot have two phonemes at the same position.
+  @@unique([wordId, position])
+  @@index([phonemeId])
+}
+
+/// A saved activity configuration. Multiple configurations can point at the
+/// same word list, which is what lets a teacher keep, say, a supported Wordle
+/// and a challenge Wordle over identical content.
+model Activity {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  /// "WORDLE" or "WORD_SEARCH".
+  type String
+
+  /// "supported", "standard" or "challenge".
+  difficulty String
+
+  /// Presentation settings shared by both activity types.
+  title        String
+  instructions String?
+  /// "light" or "dark".
+  theme String @default("light")
+
+  wordListId Int
+  wordList   WordList @relation(fields: [wordListId], references: [id], onDelete: Cascade)
+
+  // --- Wordle settings ----------------------------------------------------
+  /// Number of guesses allowed. Null for a word search.
+  attempts Int?
+
+  /// Whether English equivalence hints are visible before the word is solved.
+  showHints Boolean @default(true)
+
+  /// "FIXED" uses targetWord; "RANDOM" draws from the word list at generation
+  /// time, which is what lets one saved activity produce many different files.
+  wordSelection String @default("RANDOM")
+
+  targetWordId Int?
+  targetWord   Word? @relation(fields: [targetWordId], references: [id], onDelete: SetNull)
+
+  // --- Word Search settings -----------------------------------------------
+  gridRows       Int?
+  gridCols       Int?
+  allowDiagonals Boolean @default(true)
+  allowReverse   Boolean @default(false)
+
+  /// "english", "phonemes" or "both" — how much support the word list gives.
+  listMode String @default("english")
+
+  /// Cap on how many words are drawn into the grid. Null means use them all.
+  maxWords Int?
+
+  generations Generation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([wordListId])
+  @@index([type])
+}
+
+/// A record of each generated .html file. Metadata only — the file itself is
+/// streamed to the teacher rather than stored, so nothing large lives here.
+/// Useful for the teacher ("what did I hand out on Tuesday?") and it gives the
+/// random-selection Wordle an audit trail of which word each file used.
+model Generation {
+  id Int @id @default(autoincrement())
+
+  activityId Int
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  filename  String
+  wordCount Int
+
+  /// For a random-selection Wordle, the word this particular file used.
+  selectedWord String?
+
+  createdAt DateTime @default(now())
+
+  @@index([activityId])
+}
