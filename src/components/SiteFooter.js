@@ -18,6 +18,7 @@ export default function SiteFooter() {
         </p>
         <nav className={styles.links} aria-label="Footer">
           <Link href="/about">About</Link>
+          <Link href="/health">Health</Link>
           <Link href="/settings">Settings</Link>
         </nav>
       </div>

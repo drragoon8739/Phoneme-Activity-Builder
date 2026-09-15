@@ -8,11 +8,13 @@ import styles from './SiteHeader.module.css';
 
 const PRIMARY_LINKS = [
   { href: '/', label: 'Home' },
-  { href: '/wordle', label: 'Wordle' },
-  { href: '/word-search', label: 'Word Search' },
+  { href: '/manage', label: 'Manage' },
+  { href: '/activities', label: 'Activities' },
 ];
 
 const SECONDARY_LINKS = [
+  { href: '/wordle', label: 'Wordle builder' },
+  { href: '/word-search', label: 'Word Search builder' },
   { href: '/about', label: 'About' },
   { href: '/settings', label: 'Settings' },
 ];
