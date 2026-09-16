@@ -5,18 +5,21 @@ import { useMemo, useState } from 'react';
 import PhonemeKeyboard from './PhonemeKeyboard';
 import PhonemeStrip from './PhonemeStrip';
 import PhonemeTile from './PhonemeTile';
-import { AVAILABLE_LENGTHS, wordsOfLength, findWord } from '@/data/corpus';
+import { useWordLists } from '@/lib/useWordLists';
 import { DIFFICULTY_PRESETS, scoreGuess, keyboardStatuses } from '@/lib/wordle';
 import { buildWordleHtml } from '@/lib/export/wordleTemplate';
 import { downloadHtmlFile, toFilename } from '@/lib/download';
 import styles from './WordleBuilder.module.css';
 
-const DEFAULT_WORD = 'bait';
-
 export default function WordleBuilder() {
+  // Words come from the database rather than a bundled JavaScript module, so
+  // anything a teacher adds under Manage is immediately available here.
+  const { lists, selectedId, setSelectedId, words, availableLengths, loading, error } =
+    useWordLists();
+
   // --- Activity settings ---------------------------------------------------
   const [length, setLength] = useState(3);
-  const [wordKey, setWordKey] = useState(DEFAULT_WORD);
+  const [wordKey, setWordKey] = useState('');
   const [useCustom, setUseCustom] = useState(false);
   const [custom, setCustom] = useState([]);
   const [difficulty, setDifficulty] = useState('standard');
@@ -29,13 +32,29 @@ export default function WordleBuilder() {
   const [draft, setDraft] = useState([]);
 
   const preset = DIFFICULTY_PRESETS[difficulty];
-  const options = useMemo(() => wordsOfLength(length), [length]);
+
+  // Both of these are derived during render rather than corrected afterwards in
+  // an effect. Switching word list can leave the chosen length or word absent
+  // from the new data; falling back here means the component never renders an
+  // invalid selection, and never triggers a second render to fix one.
+  const effectiveLength =
+    availableLengths.length && !availableLengths.includes(length)
+      ? availableLengths[0]
+      : length;
+
+  const options = useMemo(
+    () => words.filter((entry) => entry.phonemes.length === effectiveLength),
+    [words, effectiveLength],
+  );
 
   const target = useMemo(() => {
     if (useCustom) {
       return { word: '(custom)', phonemes: custom };
     }
-    return findWord(wordKey) ?? options[0] ?? { word: '', phonemes: [] };
+    return (
+      options.find((entry) => entry.word === wordKey) ??
+      options[0] ?? { word: '', phonemes: [] }
+    );
   }, [useCustom, custom, wordKey, options]);
 
   const answer = target.phonemes;
@@ -59,7 +78,7 @@ export default function WordleBuilder() {
 
   function chooseLength(next) {
     setLength(next);
-    const first = wordsOfLength(next)[0];
+    const first = words.find((entry) => entry.phonemes.length === next);
     if (first) setWordKey(first.word);
     resetPreview();
   }
@@ -114,6 +133,30 @@ export default function WordleBuilder() {
           </h2>
         </header>
 
+        {error ? <p className="notice notice--warn">{error}</p> : null}
+
+        <div className="field">
+          <label htmlFor="wordle-list">Word list</label>
+          <select
+            id="wordle-list"
+            value={selectedId ?? ''}
+            onChange={(event) => {
+              setSelectedId(Number(event.target.value));
+              resetPreview();
+            }}
+            disabled={loading || lists.length === 0}
+          >
+            {lists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name} ({list.wordCount} words)
+              </option>
+            ))}
+          </select>
+          <p className="field-help">
+            Loaded from the database. Add or edit words under Manage.
+          </p>
+        </div>
+
         <div className="field">
           <label htmlFor="wordle-title">Activity title</label>
           <input
@@ -127,12 +170,14 @@ export default function WordleBuilder() {
         <fieldset className={styles.fieldset}>
           <legend className="field-label">Word length</legend>
           <div className={styles.segmented} role="group" aria-label="Word length in phonemes">
-            {AVAILABLE_LENGTHS.map((value) => (
+            {availableLengths.map((value) => (
               <button
                 key={value}
                 type="button"
-                className={`${styles.segment} ${length === value ? styles.segmentOn : ''}`}
-                aria-pressed={length === value}
+                className={`${styles.segment} ${
+                  effectiveLength === value ? styles.segmentOn : ''
+                }`}
+                aria-pressed={effectiveLength === value}
                 onClick={() => chooseLength(value)}
                 disabled={useCustom}
               >
@@ -146,7 +191,7 @@ export default function WordleBuilder() {
           <label htmlFor="wordle-word">Target word</label>
           <select
             id="wordle-word"
-            value={wordKey}
+            value={target.word}
             onChange={(event) => chooseWord(event.target.value)}
             disabled={useCustom}
           >
@@ -157,7 +202,8 @@ export default function WordleBuilder() {
             ))}
           </select>
           <p className="field-help">
-            {options.length} words available at this length, from the HCE corpus.
+            {options.length} of {words.length} words in this list have{' '}
+            {effectiveLength} phonemes.
           </p>
         </div>
 
@@ -238,7 +284,7 @@ export default function WordleBuilder() {
             id="wordle-instructions"
             type="text"
             value={instructions}
-            placeholder={`Build the hidden ${answer.length || 3}-phoneme word.`}
+            placeholder={`Build the hidden ${answer.length || effectiveLength}-phoneme word.`}
             onChange={(event) => setInstructions(event.target.value)}
           />
         </div>

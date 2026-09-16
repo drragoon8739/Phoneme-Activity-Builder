@@ -5,16 +5,16 @@ import styles from './home.module.css';
 
 const STEPS = [
   {
-    title: 'Configure',
-    body: 'Pick a target word from the HCE corpus, or build one phoneme by phoneme on the keyboard. Set difficulty, grid size and how much English support to show.',
+    title: 'Build a word list',
+    body: 'Add words to the database phoneme by phoneme on the keyboard. Each symbol is stored as its own unit, so /tʃ/ is one phoneme rather than two characters.',
   },
   {
-    title: 'Preview',
-    body: 'Play the activity in the builder exactly as a student will see it, including hover hints and feedback colours. Nothing is exported until it looks right.',
+    title: 'Save an activity',
+    body: 'Point a Wordle or Word Search at a word list and save the settings. Several activities can share one list, so the same content serves different classes.',
   },
   {
     title: 'Generate',
-    body: 'Download a single .html file. It opens in any browser with no internet connection, no plugins and no install — email it, print the link, or drop it in an LMS.',
+    body: 'The server builds a single .html file from the stored list. It opens in any browser with no internet connection and no install — email it, print it, or drop it in an LMS.',
   },
 ];
 
@@ -106,12 +106,14 @@ export default function HomePage() {
       </section>
 
       <section className="panel">
-        <p className="eyebrow">Scope</p>
+        <p className="eyebrow">How your content is stored</p>
         <p>
-          This is Assessment 1, which covers frontend design and usability only.
-          The word list is a fixed in-memory corpus and there is no database or
-          account system. Assessment 2 introduces stored word lists and rotating
-          word selection. See{' '}
+          Word lists and activity settings are stored in a database. Teachers
+          manage their own content under{' '}
+          <Link href="/manage">Manage</Link>, save reusable configurations under{' '}
+          <Link href="/activities">Activities</Link>, and generate a fresh
+          downloadable file whenever they need one — an activity set to random
+          selection produces a different word every time. See{' '}
           <Link href="/about">About</Link> for the full scope statement and the
           walkthrough video, or <Link href="/settings">Settings</Link> to change
           the theme and layout.

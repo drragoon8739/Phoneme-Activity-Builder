@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { STUDENT } from '@/data/student';
+
 import styles from './SiteHeader.module.css';
 
 const PRIMARY_LINKS = [
@@ -105,7 +107,7 @@ export default function SiteHeader() {
           <span className={styles.brandText}>
             <strong>Phoneme Activity Builder</strong>
             <span className={styles.brandSub}>
-              Assessment 1 · Frontend Design and Usability
+              {STUDENT.assessment} · {STUDENT.subject}
             </span>
           </span>
         </Link>

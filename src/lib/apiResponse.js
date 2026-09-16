@@ -15,6 +15,25 @@ import { fieldErrors } from './validation';
  * the status code alone.
  */
 
+/**
+ * Prisma reports a unique-constraint breach with the database column names
+ * that clashed — "wordListId, english". Those are meaningless to a teacher, so
+ * the known combinations are given plain wording here. Anything unmapped falls
+ * back to a generic sentence rather than leaking the column names.
+ */
+const DUPLICATE_MESSAGES = {
+  'wordListId,english': 'That word is already in this list',
+  english: 'That word is already in this list',
+  name: 'That name is already taken — choose a different one',
+  ipa: 'That phoneme is already in the inventory',
+  'wordId,position': 'That position in the word is already filled',
+};
+
+function duplicateMessage(target) {
+  const key = Array.isArray(target) ? target.join(',') : String(target ?? '');
+  return DUPLICATE_MESSAGES[key] ?? 'That value is already in use';
+}
+
 export function ok(data, status = 200) {
   return NextResponse.json({ ok: true, data }, { status });
 }
@@ -60,14 +79,11 @@ export function handleError(error, context = 'request') {
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
-      case 'P2002': {
-        const target = error.meta?.target;
-        const field = Array.isArray(target) ? target.join(', ') : String(target ?? 'value');
-        return fail(`That ${field} is already in use`, {
+      case 'P2002':
+        return fail(duplicateMessage(error.meta?.target), {
           status: 409,
           code: 'DUPLICATE',
         });
-      }
       case 'P2003':
         return fail('That record refers to something that does not exist', {
           status: 400,

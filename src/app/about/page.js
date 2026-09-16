@@ -8,22 +8,22 @@ import styles from './about.module.css';
 export const metadata = {
   title: 'About — Phoneme Activity Builder',
   description:
-    'What this project is, what Assessment 1 covers, and how to use the two builders.',
+    'What this project is, what Assessment 2 adds, and how to use the builders.',
 };
 
 const IN_SCOPE = [
-  'A component-based React frontend built with Next.js and the App Router.',
-  'A responsive layout that works from a phone up to a projector.',
-  'Two builders — Wordle and Word Search — each with a live preview.',
-  'A fixed, in-memory phoneme corpus of 90 words.',
-  'Export to a single self-contained .html file that runs offline.',
-  'Theme and layout preferences stored in cookies.',
+  'A SQLite database, accessed through Prisma, holding word lists and activity settings.',
+  'Phonemes stored as whole symbols in their own table, so /tʃ/ is never split into two characters.',
+  'Full CRUD over word lists, words and saved activities through a REST API.',
+  'Input validation and error handling on every write endpoint.',
+  'Server-side generation of downloadable .html activities from stored data.',
+  'A /health endpoint that reports whether the database is actually reachable.',
+  'The whole application running in a Docker container.',
 ];
 
 const OUT_OF_SCOPE = [
-  'A database or any server-side storage.',
-  'Teacher accounts, sign-in, or saved activities.',
-  'Dynamic word-list management or rotating word selection.',
+  'Teacher accounts or sign-in — the tool is single-user for now.',
+  'Automated tests and deployment, which later assessments cover.',
   'Audio playback of phonemes.',
 ];
 
@@ -124,13 +124,15 @@ export default function AboutPage() {
 
       <section className="panel">
         <p className="eyebrow">Scope</p>
-        <h2 className={styles.heading}>Assessment 1 is frontend only</h2>
+        <h2 className={styles.heading}>Assessment 2 adds the backend</h2>
         <p>
-          This stage is assessed on frontend design, usability and accessibility.
-          There is no backend of any kind: the word list is a JavaScript module,
-          and generated activities are built in the browser and saved straight to
-          disk. Assessment 2 introduces the database and dynamic word-list
-          generation.
+          Assessment 1 built the interface, with the word list hard-coded in a
+          JavaScript module and a single fixed Wordle word. Assessment 2 moves
+          that content into a database: teachers now create their own word
+          lists, save reusable activity configurations, and generate files on
+          the server from whatever the list holds at that moment. An activity
+          set to random selection produces a different word every time it is
+          generated, which is the practical difference a database makes.
         </p>
 
         <div className={styles.scope}>
@@ -156,12 +158,14 @@ export default function AboutPage() {
       <section className="panel">
         <p className="eyebrow">Data</p>
         <p>
-          The corpus holds {CORPUS.length} words in broad HCE transcription,
-          drawn from the subject materials, across{' '}
+          The database is seeded with {CORPUS.length} words in broad HCE
+          transcription, drawn from the subject materials, across{' '}
           {PHONEMES.length} phonemes arranged in the keyboard layout supplied
           with the brief. Transcriptions are Australian English, so the vowel
           symbols differ from the British or American sets you may have seen
-          elsewhere.
+          elsewhere. A word is stored as an ordered sequence of phoneme rows
+          rather than as text, which is what keeps multi-character symbols such
+          as /tʃ/, /ɐː/ and /əʉ/ intact.
         </p>
       </section>
     </>

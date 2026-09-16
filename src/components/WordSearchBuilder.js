@@ -3,12 +3,7 @@
 import { useMemo, useState } from 'react';
 
 import PhonemeTile from './PhonemeTile';
-import {
-  AVAILABLE_LENGTHS,
-  DEFAULT_WORD_SEARCH_WORDS,
-  findWord,
-  wordsOfLength,
-} from '@/data/corpus';
+import { useWordLists } from '@/lib/useWordLists';
 import { generateWordSearch, minimumGridSize } from '@/lib/wordSearch';
 import { buildWordSearchHtml } from '@/lib/export/wordSearchTemplate';
 import { downloadHtmlFile, toFilename } from '@/lib/download';
@@ -29,7 +24,14 @@ const LIST_MODES = [
 ];
 
 export default function WordSearchBuilder() {
-  const [selected, setSelected] = useState(DEFAULT_WORD_SEARCH_WORDS);
+  // Words come from the database, so a teacher's own list can drive the puzzle.
+  const { lists, selectedId, setSelectedId, words, availableLengths, loading, error } =
+    useWordLists();
+
+  // null means "the teacher has not chosen yet", which is different from an
+  // empty array meaning "they deliberately cleared the selection". Without that
+  // distinction the Clear button would instantly refill with the defaults.
+  const [selected, setSelected] = useState(null);
   const [filterLength, setFilterLength] = useState(3);
   const [rows, setRows] = useState(10);
   const [cols, setCols] = useState(10);
@@ -44,9 +46,30 @@ export default function WordSearchBuilder() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [exported, setExported] = useState(null);
 
+  // Derived during render rather than corrected in an effect. `selected` holds
+  // the teacher's own choice; until they make one, the first five words of the
+  // loaded list stand in, so the preview shows a real puzzle immediately.
+  const effectiveSelected = useMemo(() => {
+    if (selected === null) return words.slice(0, 5).map((entry) => entry.word);
+    return selected.filter((name) => words.some((entry) => entry.word === name));
+  }, [selected, words]);
+
+  const effectiveLength =
+    availableLengths.length && !availableLengths.includes(filterLength)
+      ? availableLengths[0]
+      : filterLength;
+
   const entries = useMemo(
-    () => selected.map((word) => findWord(word)).filter(Boolean),
-    [selected],
+    () =>
+      effectiveSelected
+        .map((name) => words.find((entry) => entry.word === name))
+        .filter(Boolean),
+    [effectiveSelected, words],
+  );
+
+  const wordsOfFilteredLength = useMemo(
+    () => words.filter((entry) => entry.phonemes.length === effectiveLength),
+    [words, effectiveLength],
   );
 
   const puzzle = useMemo(
@@ -73,10 +96,11 @@ export default function WordSearchBuilder() {
   const tooSmall = entries.length > 0 && (rows < minimum || cols < minimum);
 
   function toggleWord(word) {
-    setSelected((current) =>
-      current.includes(word)
-        ? current.filter((value) => value !== word)
-        : [...current, word],
+    // Seeded from the derived set, so the teacher's first click edits the five
+    // words they can actually see rather than starting from an empty selection.
+    const base = effectiveSelected;
+    setSelected(
+      base.includes(word) ? base.filter((value) => value !== word) : [...base, word],
     );
   }
 
@@ -108,6 +132,27 @@ export default function WordSearchBuilder() {
           </h2>
         </header>
 
+        {error ? <p className="notice notice--warn">{error}</p> : null}
+
+        <div className="field">
+          <label htmlFor="ws-list">Word list</label>
+          <select
+            id="ws-list"
+            value={selectedId ?? ''}
+            onChange={(event) => setSelectedId(Number(event.target.value))}
+            disabled={loading || lists.length === 0}
+          >
+            {lists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name} ({list.wordCount} words)
+              </option>
+            ))}
+          </select>
+          <p className="field-help">
+            Loaded from the database. Add or edit words under Manage.
+          </p>
+        </div>
+
         <div className="field">
           <label htmlFor="ws-title">Activity title</label>
           <input
@@ -120,18 +165,18 @@ export default function WordSearchBuilder() {
 
         <fieldset className={styles.fieldset}>
           <legend className="field-label">
-            Word list ({selected.length} selected)
+            Words in the puzzle ({effectiveSelected.length} selected)
           </legend>
 
           <div className={styles.segmented} role="group" aria-label="Filter by word length">
-            {AVAILABLE_LENGTHS.map((value) => (
+            {availableLengths.map((value) => (
               <button
                 key={value}
                 type="button"
                 className={`${styles.segment} ${
-                  filterLength === value ? styles.segmentOn : ''
+                  effectiveLength === value ? styles.segmentOn : ''
                 }`}
-                aria-pressed={filterLength === value}
+                aria-pressed={effectiveLength === value}
                 onClick={() => setFilterLength(value)}
               >
                 {value} phonemes
@@ -140,14 +185,14 @@ export default function WordSearchBuilder() {
           </div>
 
           <ul className={styles.wordPicker}>
-            {wordsOfLength(filterLength).map((entry) => {
+            {wordsOfFilteredLength.map((entry) => {
               const id = `word-${entry.word}`;
               return (
                 <li key={entry.word}>
                   <input
                     id={id}
                     type="checkbox"
-                    checked={selected.includes(entry.word)}
+                    checked={effectiveSelected.includes(entry.word)}
                     onChange={() => toggleWord(entry.word)}
                   />
                   <label htmlFor={id}>
@@ -165,15 +210,16 @@ export default function WordSearchBuilder() {
             <button
               type="button"
               className="btn btn--secondary"
-              onClick={() => setSelected(DEFAULT_WORD_SEARCH_WORDS)}
+              onClick={() => setSelected(null)}
+              disabled={words.length === 0}
             >
-              Reset to default five
+              Reset to first five
             </button>
             <button
               type="button"
               className="btn btn--secondary"
               onClick={() => setSelected([])}
-              disabled={selected.length === 0}
+              disabled={effectiveSelected.length === 0}
             >
               Clear
             </button>

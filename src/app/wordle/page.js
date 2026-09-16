@@ -16,7 +16,8 @@ export default function WordlePage() {
           Students guess a hidden word by choosing phonemes, not letters. Green
           means the right phoneme in the right place; amber means it belongs to
           the word but sits elsewhere. The English spelling appears only once the
-          word is solved.
+          word is solved. Target words come from your saved lists, so anything
+          you add under Manage is available here straight away.
         </p>
       </header>
 
