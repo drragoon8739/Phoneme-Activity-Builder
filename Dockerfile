@@ -64,14 +64,23 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Migrations, schema, seed and the Prisma CLI, so the entrypoint can bring an
-# empty volume up to date on first start.
+# Migrations, schema and seed, so the entrypoint can bring an empty volume up
+# to date on first start.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/src/data ./src/data
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+
+# The full dependency tree, copied after the standalone bundle so it supersedes
+# the traced subset.
+#
+# Standalone output traces only what the *server* imports at runtime, which does
+# not include the Prisma CLI — and the CLI is needed here, because the entrypoint
+# runs `prisma migrate deploy` against a volume the image knows nothing about.
+# Copying selected node_modules subfolders instead was tried and is not viable:
+# the CLI pulls in a web of transitive dependencies, so cherry-picking folders
+# fails at runtime on whichever one was missed. Taking the whole tree costs image
+# size but is correct, and correctness of the migration step matters more here
+# than a smaller image.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh \

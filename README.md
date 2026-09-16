@@ -166,7 +166,13 @@ the compiled application, the Prisma client and the migration files — no sourc
 no dev dependencies, no build toolchain.
 
 - Next.js `output: 'standalone'` traces the exact files the server needs, so the
-  runtime stage copies a small bundle rather than all of `node_modules`.
+  runtime stage starts from a small bundle rather than the whole project.
+- The full `node_modules` tree is then copied over it. Standalone tracing covers
+  what the *server* imports, which does not include the Prisma CLI — and the CLI
+  is needed at runtime, because the entrypoint migrates a volume the image knows
+  nothing about. Copying selected subfolders instead fails on whichever
+  transitive dependency was missed, so the whole tree is taken: a larger image in
+  exchange for a migration step that actually works.
 - The container runs as a non-root user.
 - The SQLite file lives on a named volume at `/app/data`, so data survives
   `docker compose down` and image rebuilds.
