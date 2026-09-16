@@ -85,7 +85,7 @@ export async function listWordLists() {
 export async function getWordList(id) {
   const row = await prisma.wordList.findUnique({
     where: { id },
-    include: { words: { include: withPhonemes.phonemes, orderBy: { english: 'asc' } } },
+    include: { words: { include: withPhonemes, orderBy: { english: 'asc' } } },
   });
   if (!row) return null;
   return {
@@ -113,7 +113,7 @@ export async function listWords({ wordListId, length, contains } = {}) {
 
   const rows = await prisma.word.findMany({
     where,
-    include: withPhonemes.phonemes,
+    include: withPhonemes,
     orderBy: { english: 'asc' },
   });
 
@@ -124,7 +124,7 @@ export async function listWords({ wordListId, length, contains } = {}) {
 }
 
 export async function getWord(id) {
-  const row = await prisma.word.findUnique({ where: { id }, include: withPhonemes.phonemes });
+  const row = await prisma.word.findUnique({ where: { id }, include: withPhonemes });
   return row ? toWordEntry(row) : null;
 }
 
@@ -149,7 +149,7 @@ export async function createWord({ english, phonemes, hint, notes, wordListId })
         })),
       },
     },
-    include: withPhonemes.phonemes,
+    include: withPhonemes,
   });
 }
 
@@ -182,7 +182,7 @@ export async function updateWord(id, { english, phonemes, hint, notes }) {
             }
           : {}),
       },
-      include: withPhonemes.phonemes,
+      include: withPhonemes,
     });
   });
 }
@@ -220,7 +220,7 @@ export async function getActivity(id) {
     where: { id },
     include: {
       wordList: { select: { id: true, name: true } },
-      targetWord: { include: withPhonemes.phonemes },
+      targetWord: { include: withPhonemes },
       generations: { orderBy: { createdAt: 'desc' }, take: 5 },
     },
   });
@@ -230,7 +230,7 @@ export async function getActivity(id) {
 export async function wordsForActivity(activity) {
   const rows = await prisma.word.findMany({
     where: { wordListId: activity.wordListId },
-    include: withPhonemes.phonemes,
+    include: withPhonemes,
     orderBy: { english: 'asc' },
   });
   return rows.map(toWordEntry);
