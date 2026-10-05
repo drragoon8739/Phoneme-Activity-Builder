@@ -7,9 +7,12 @@ runs offline in any browser.
 
 - **Assessment 1** built the frontend: the interface, the phoneme keyboard, and
   HTML export driven by a hard-coded word list.
-- **Assessment 2** (this stage) adds the backend: a SQLite database accessed
-  through Prisma, a REST API with full CRUD and validation, server-side
-  activity generation, and Docker.
+- **Assessment 2** added the backend: a SQLite database accessed through
+  Prisma, a REST API with full CRUD and validation, server-side activity
+  generation, and Docker.
+- **Assessment 3** (this stage) makes it data-driven: a reporting dashboard,
+  server-side instrumentation, operational statistics, alerts, and end-to-end,
+  load and accessibility testing.
 
 ---
 
@@ -21,6 +24,7 @@ cp .env.example .env          # Windows: copy .env.example .env
 npx prisma generate           # build the database client from the schema
 npx prisma migrate dev        # create the database and its tables
 npm run db:seed               # load 43 phonemes and 90 words
+npm run db:simulate           # write a few weeks of simulated usage history
 npm run dev                   # http://localhost:3000
 ```
 
@@ -28,7 +32,31 @@ A successful seed reports:
 
 ```
 Seed complete: { phonemes: 43, wordLists: 1, words: 90, phonemeLinks: 360, activities: 2 }
+Simulated history written: { days: 21, pageViews: 228, generations: 50, ... }
 ```
+
+`npm run setup` does the migrate, seed and simulate steps in one go.
+
+> **Upgrading a database created before Assessment 3?** The migration adds two
+> required columns to `Generation`, and SQLite cannot add a required column to a
+> table that already has rows. Prisma will offer to reset — accept it. The only
+> records affected are demo generations from Assessment 2, and `db:seed` plus
+> `db:simulate` repopulate everything immediately. `npm run db:reset` does the
+> same thing deliberately.
+
+
+### About the simulated history
+
+A freshly installed copy has no usage history, so every panel on the dashboard
+would read "no data yet" and none of the reporting could be seen. `db:simulate`
+writes a plausible few weeks of page views and generation attempts — including
+failures — so the dashboard is meaningful from the first run.
+
+It is deliberately separate from the real seed, separately runnable, and
+reversible with `npm run db:simulate -- --clear`. The records go through the
+same tables the live application writes to, with the same shapes, so if an
+aggregation is wrong these rows will show it wrong too. Nothing in the
+application knows they are simulated.
 
 ### With Docker
 
@@ -89,7 +117,9 @@ having teachers build words on the phoneme keyboard.
 | `Word` | English spelling, optional hint and teacher notes; belongs to a list. |
 | `WordPhoneme` | One phoneme at one position in one word — the ordered join. |
 | `Activity` | A saved configuration: type, difficulty, and the settings for a Wordle or a Word Search. |
-| `Generation` | Metadata for each generated file, including which word a random Wordle used. |
+| `Generation` | Every generation attempt — successful or not — with the outcome, failure reason, duration, and which word a random Wordle used. |
+| `PageView` | One visit to one page, with how long it was visible. What "average time on page" is computed from. |
+| `SystemEvent` | Rejected input and other notable server-side states. |
 
 Key constraints:
 
@@ -102,6 +132,14 @@ Key constraints:
 - `Word` deletion cascades to its phoneme rows, but an `Activity` using it as a
   fixed target has that reference set to null — the teacher loses one word, not
   a whole configuration.
+- `Generation.activityId` is nullable and set to null when its activity is
+  deleted, with the activity's name and type copied onto the row at generation
+  time. An operational history that silently shrinks when someone tidies up is
+  worse than no history, because the numbers still look right and are not.
+- Statistics are computed from these records on read, never stored as running
+  totals. Storing the data the statistics are derived from means a figure can
+  be broken down, filtered by date and recalculated if its definition changes —
+  none of which a stored average allows.
 
 SQLite via Prisma has no native enum type, so constrained fields such as
 `type` and `difficulty` are stored as strings and validated with Zod at the API
@@ -125,6 +163,17 @@ Every endpoint returns the same envelope: `{ ok: true, data }` on success,
 | GET, POST | `/api/activities` | List and create saved configurations |
 | GET, PATCH, DELETE | `/api/activities/:id` | One configuration |
 | POST | `/api/activities/:id/generate` | Builds the `.html` file from stored data and returns it as a download |
+| GET | `/api/metrics` | Every dashboard figure as JSON (`?days=` narrows the window) |
+| POST | `/api/metrics/page-view` | Receives a time-on-page beacon from the browser |
+
+`/api/metrics` exists so the dashboard's numbers can be checked independently of
+the page that displays them, which is what makes a dashboard figure verifiable
+rather than merely plausible. It is also what the load tests hit.
+
+`/api/metrics/page-view` always answers `204`, even to a payload it rejects:
+the caller is `sendBeacon` during page unload, which cannot read a response or
+retry, so an error status would be shouting into a void while still costing the
+browser a round trip it is trying to close out.
 
 ### Validation and error handling
 
@@ -183,6 +232,185 @@ no dev dependencies, no build toolchain.
   unreachable database marks the container unhealthy rather than leaving it
   "running" while every request fails.
 
+
+---
+
+## The dashboard and what it reports
+
+`/dashboard` is the reporting surface. Every figure on it is computed from
+stored records at the moment the page loads — there are no running totals.
+
+A stored counter is one failed increment away from disagreeing with the data it
+claims to describe, and a dashboard that is confidently wrong is worse than one
+that is slow. At this data volume, recomputing costs a few milliseconds; the
+page prints how long it took at the bottom so the claim can be checked.
+
+| Panel | Answers |
+| --- | --- |
+| Health indicator | Is the app up, and can it reach its database right now? |
+| Alerts | What needs a teacher's attention? |
+| Headline figures | Activities saved by type, successful and failed generations, average time on page, most-used activity, library size |
+| Generation activity | Attempts per day, split by outcome |
+| Why generations failed | Failure counts grouped by reason |
+| Generated outputs | The most recent attempts, with the file produced or the reason there wasn't one |
+| Stored word lists | What the builder draws on, and which lists are empty |
+| Time on page | Where readers actually spend time |
+| Server event log | Input the API rejected, and other notable states |
+
+### Three figures that are easy to get wrong
+
+**An average over no rows is null, not zero.** "No data yet" and "zero seconds"
+are different claims, and a dashboard that prints `0 s` for a statistic it has
+never recorded is asserting something it cannot support. Everything null-safe
+renders as an em dash instead.
+
+**A success rate is a share of attempts, not of successes.** Assessment 2
+recorded only successful generations, which made the failure rate unknowable —
+and an unknown failure rate reads as a zero one. Every attempt is now recorded,
+successful or not.
+
+**"Most used" can genuinely tie.** When two activity types have the same
+number of generations the dashboard says so, rather than picking a winner by
+whichever row the database happened to return first.
+
+### Which figures the window applies to
+
+The window picker scopes the *usage* figures — generations, page views, the
+trend chart. Activities saved and library size are current totals, because a
+library has a size now rather than a size over the last fortnight. The section
+says which is which, so no one compares two numbers measuring different periods.
+
+---
+
+## Instrumentation
+
+Three things are recorded, all through tables the application writes to in the
+normal course of its work.
+
+**Generation attempts** (`Generation`) — every call to the generate endpoint,
+successful or not, with the outcome, the reason for a failure, and how long it
+took. Each exit path in the route goes through one of two helpers, so no
+outcome can leave without being counted.
+
+**Page views** (`PageView`) — how long each page was *visible*, sent by the
+browser with `navigator.sendBeacon` during unload. A tab left open in the
+background is not time a teacher spent reading, so hidden time is excluded;
+counting it would make the average meaningless. Views shorter than a second are
+discarded, which also filters the phantom remounts React's StrictMode produces
+in development.
+
+**Rejected input** (`SystemEvent`) — validation failures and constraint
+breaches, captured in the shared error handler. Without this, a rejection
+leaves no trace once the response is sent. A 404 is deliberately *not* logged:
+a request for something that does not exist is ordinary traffic, not a signal,
+and logging it would bury the entries that matter.
+
+Recording never breaks the thing it records. Every instrumentation call
+swallows its own errors and logs to the console instead of throwing — a teacher
+losing a worksheet because a metrics write failed would be a worse outcome than
+a missing row on a dashboard.
+
+### Privacy
+
+Page views carry a random session id generated in the browser and held in
+`sessionStorage`, so it dies with the tab. It exists only to tell one visitor's
+several page views apart from several visitors' one. No names, no accounts, no
+IP addresses.
+
+---
+
+## Alerts
+
+Alerts are derived from the current state of the database rather than from a
+log of past events, so fixing the underlying problem clears the alert. There is
+nothing to dismiss and nothing that can linger after it stops being true.
+
+| Alert | Condition |
+| --- | --- |
+| Empty word list | A list with no words, which generation will fail on |
+| Missing target word | A Wordle fixed to a word that has since been deleted |
+| Recent failures | A generation failed in the last 24 hours |
+| Rejected input | The API refused a request in the last 24 hours |
+| No activities | Nothing saved yet — a first-run prompt, not a problem |
+
+Severity is carried by a word and an icon as well as a colour, so the panel
+reads correctly in greyscale and to a screen reader.
+
+---
+
+## Testing
+
+### End-to-end — Playwright
+
+```bash
+npx playwright install chromium   # first run only
+npm run test:e2e
+npm run test:report               # open the HTML report
+```
+
+Twelve tests across three files, driving the real application against the real
+database. There are no mocks: a mocked API would pass happily while the actual
+Prisma query was wrong, which is the exact class of bug these exist to catch.
+Each test creates records with a unique name and removes them afterwards, so a
+run leaves the database as it found it.
+
+| File | Covers |
+| --- | --- |
+| `word-list-crud.spec.js` | The builder use case: create, read, update and delete a word list and a word, plus a rejected duplicate |
+| `generate-activity.spec.js` | The user use case: generate a file, open it from `file://`, and play it through to a solve |
+| `dashboard.spec.js` | Health, reporting panels, figures matching the API, the chart's table view, the window picker, and that generating moves the count |
+
+Two are worth singling out. The generation test opens the downloaded HTML from
+disk rather than over http, because the whole promise of the export is that it
+works on a classroom machine with no internet — loading it from the server
+would test the wrong thing. And `generating is recorded, so the dashboard count
+moves` asserts that one generation raises the reported total by exactly one,
+which is what proves the instrumentation is wired to reality rather than merely
+present.
+
+### Load — JMeter
+
+```bash
+./tests/load/run-levels.sh            # 1, 10, 100, 1000
+./tests/load/run-levels.sh 1 10 100   # just these
+```
+
+Requires JMeter on `PATH` and the app already running. Each level writes raw
+samples and an HTML report under `tests/load/results/`, so the levels can be
+compared — comparing one level against nothing says nothing about how the
+system scales.
+
+The plan has two thread groups. The read workload (health, dashboard, metrics,
+word lists) can be hammered freely because the requests leave nothing behind.
+The write workload calls the generation endpoint, and every call stores a row,
+so it is scaled separately at a tenth of the read load — otherwise a single run
+at high concurrency would bury weeks of real usage data under machine-made
+noise and leave the dashboard useless.
+
+Both groups use think time between requests. Without it every virtual user
+behaves like a tight loop, which measures how fast the server can be flooded
+rather than how it behaves under a realistic number of readers.
+
+**On the x10000 level.** That is more concurrency than a laptop can generate
+honestly: JMeter needs roughly a megabyte of heap per thread, so ten thousand
+threads is about 10 GB before the application under test gets any memory at all,
+and the resulting numbers would measure the load generator running out of room.
+Run the levels your machine can sustain, and say where the bottleneck moved to
+the test harness — that is a better answer than a graph built from a load
+generator that was itself the slowest part.
+
+### Accessibility — Lighthouse
+
+```bash
+npm run build && npm start        # audit the production build, not dev
+npx lighthouse http://localhost:3000/dashboard \
+  --only-categories=accessibility --view
+```
+
+Audit `/dashboard`, `/manage` and `/activities`. See
+[`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md) for what was found, what was
+changed, and the contrast figures.
+
 ---
 
 ## Project structure
@@ -191,16 +419,24 @@ no dev dependencies, no build toolchain.
 prisma/
 ├── schema.prisma          the data model
 ├── migrations/            generated SQL — required by Docker
-└── seed.js                loads the inventory and corpus from src/data
+├── seed.js                loads the inventory and corpus from src/data
+└── simulate.js            optional simulated usage history
+tests/
+├── e2e/                   Playwright specs
+└── load/                  JMeter plan and the level runner
 src/
 ├── app/
 │   ├── health/route.js    healthcheck
-│   ├── api/               REST endpoints
+│   ├── dashboard/         reporting and observability
+│   ├── api/               REST endpoints, including /api/metrics
 │   ├── manage/            word list and word CRUD
 │   ├── activities/        saved configurations and generation
 │   ├── wordle/            Wordle builder
 │   └── word-search/       Word Search builder
-├── components/            UI, built around one reusable PhonemeTile
+├── components/
+│   ├── dashboard/         tiles, chart, alerts, reporting panels
+│   ├── PageViewTracker.js measures visible time per route
+│   └── ...                UI, built around one reusable PhonemeTile
 ├── data/                  seed source: phoneme inventory and HCE corpus
 └── lib/
     ├── db.js              Prisma client singleton
@@ -208,6 +444,9 @@ src/
     ├── validation.js      Zod schemas
     ├── apiResponse.js     response envelope and error translation
     ├── apiClient.js       browser-side fetch wrapper
+    ├── instrumentation.js recording generations, events and page views
+    ├── metrics.js         every dashboard aggregation
+    ├── format.js          null-safe display formatting
     └── export/            standalone HTML templates
 ```
 
@@ -219,6 +458,19 @@ corpus.
 ---
 
 ## Accessibility
+
+[`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md) has the Lighthouse findings,
+the contrast measurements, and what changed because of them. In summary:
+
+- The success/failure palette was chosen by measurement, not convention. Green
+  and red separate by only 6.6 under simulated deuteranopia, below the usable
+  floor of 8; the green and orange-red actually used separate by 9.3.
+- Four text pairs measured below 4.5:1 and were corrected, including an alert
+  badge that was readable in light mode and not in dark.
+- Outcome is never carried by colour alone: status tags, alert severities and
+  the health indicator all read in words, with icons.
+- The trend chart offers the same numbers as a real table, which is the
+  keyboard and screen-reader path to them.
 
 Carried forward from Assessment 1 and applied to the new pages:
 
