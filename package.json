@@ -12,8 +12,12 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
-    "setup": "prisma migrate deploy && prisma db seed",
-    "postinstall": "prisma generate"
+    "setup": "prisma migrate deploy && prisma db seed && node prisma/simulate.js",
+    "postinstall": "prisma generate",
+    "db:simulate": "node prisma/simulate.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -24,6 +28,7 @@
     "zod": "^4.6.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.0"
   },
