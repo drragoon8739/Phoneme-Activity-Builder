@@ -1,0 +1,63 @@
+.pageHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.sectionHead > h2 {
+  margin: 0;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+/* Six tiles into four columns leaves a two-wide gap on the second row. Three
+   columns divides them evenly, so the block reads as a grid rather than as a
+   row that ran out. */
+@media (min-width: 1080px) {
+  .tiles {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.twoUp {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .twoUp {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.footnote {
+  font-size: var(--step--1);
+  color: var(--muted);
+  text-align: center;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.scopeNote {
+  font-size: var(--step--1);
+  color: var(--muted);
+  max-width: 44ch;
+  margin-top: var(--space-1);
+}

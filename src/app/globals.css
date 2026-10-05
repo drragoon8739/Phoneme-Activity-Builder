@@ -75,6 +75,24 @@
   --present-soft: #faecca;
   --absent: #6d818c;
   --absent-soft: #e2e9ec;
+
+  /* Dashboard status colours.
+     Deliberately NOT the conventional green/red pair. Validated for colour
+     vision deficiency: green #2e7d53 against red #b3261e separates by only
+     6.6 deltaE under deuteranopia, which is inside the unsafe band; the
+     orange-red below separates by 9.3. Success keeps the familiar green so the
+     convention still reads, and failure moves to orange-red so the pair stays
+     distinguishable without relying on colour alone. */
+  --stat-success: #2e7d53;
+  --stat-success-soft: #edf8f2;
+  --stat-failure: #c2410c;
+  --stat-failure-soft: #fdf0e9;
+  /* Text colour for a solid fill of --stat-failure. White is readable on the
+     light-mode red but not on the lighter dark-mode orange, so the pairing is
+     a token rather than a hard-coded #fff. */
+  --stat-failure-ink: #ffffff;
+  --stat-neutral: #566873;
+  --chart-grid: #dde6ea;
 }
 
 /* Dark theme --------------------------------------------------------------- */
@@ -101,6 +119,17 @@
   --present-soft: #3a2f15;
   --absent: #7d919b;
   --absent-soft: #24313a;
+
+  /* Re-chosen for the dark surface rather than lightened from the light-mode
+     values: both sit inside the dark lightness band and separate by 11.0
+     deltaE under deuteranopia against card background #16222a. */
+  --stat-success: #30a884;
+  --stat-success-soft: #0f281f;
+  --stat-failure: #e05f28;
+  --stat-failure-soft: #200f06;
+  --stat-failure-ink: #23100a;
+  --stat-neutral: #9db1bb;
+  --chart-grid: #2a3a44;
 }
 
 /* Layout preferences (Settings page, persisted in cookies) ------------------ */

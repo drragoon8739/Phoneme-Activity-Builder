@@ -9,12 +9,13 @@ import { STUDENT } from '@/data/student';
 import styles from './SiteHeader.module.css';
 
 const PRIMARY_LINKS = [
-  { href: '/', label: 'Home' },
+  { href: '/dashboard', label: 'Dashboard' },
   { href: '/manage', label: 'Manage' },
   { href: '/activities', label: 'Activities' },
 ];
 
 const SECONDARY_LINKS = [
+  { href: '/', label: 'Home' },
   { href: '/wordle', label: 'Wordle builder' },
   { href: '/word-search', label: 'Word Search builder' },
   { href: '/about', label: 'About' },

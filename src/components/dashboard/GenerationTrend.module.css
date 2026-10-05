@@ -1,0 +1,213 @@
+.wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: var(--step-1);
+  margin: 0;
+}
+
+.sub {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.swatchSuccess {
+  background: var(--stat-success);
+}
+
+.swatchFailed {
+  background: var(--stat-failure);
+}
+
+.toggle {
+  font: inherit;
+  font-size: var(--step--1);
+  font-family: var(--font-display);
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  border-color: var(--brand);
+  background: var(--card-sunk);
+}
+
+/* Plot --------------------------------------------------------------------- */
+.plot {
+  position: relative;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.axis {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.bandHighlight {
+  fill: var(--brand);
+  opacity: 0.07;
+}
+
+.barSuccess {
+  fill: var(--stat-success);
+}
+
+.barFailed {
+  fill: var(--stat-failure);
+}
+
+.tickLabel,
+.dayLabel {
+  fill: var(--muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+}
+
+.tickLabel {
+  text-anchor: end;
+}
+
+.dayLabel {
+  text-anchor: middle;
+}
+
+/* Tooltip ------------------------------------------------------------------ */
+.tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+}
+
+.tooltip p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.tooltipDate {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+/* Table view --------------------------------------------------------------- */
+.tableScroll {
+  overflow-x: auto;
+  max-height: 20rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.table th,
+.table td {
+  text-align: right;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.table thead th {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 2px solid var(--line-strong);
+  position: sticky;
+  top: 0;
+  background: var(--card);
+}
+
+.table tbody th {
+  text-align: left;
+  font-weight: 600;
+}
