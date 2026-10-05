@@ -1,11 +1,7 @@
-import {
-  getActivity,
-  wordsForActivity,
-  recordGeneration,
-  toWordEntry,
-} from '@/lib/repository';
+import { getActivity, wordsForActivity, toWordEntry } from '@/lib/repository';
 import { idParam } from '@/lib/validation';
 import { fail, notFound, handleError } from '@/lib/apiResponse';
+import { recordGenerationAttempt } from '@/lib/instrumentation';
 import { buildWordleHtml } from '@/lib/export/wordleTemplate';
 import { buildWordSearchHtml } from '@/lib/export/wordSearchTemplate';
 import { generateWordSearch, minimumGridSize } from '@/lib/wordSearch';
@@ -18,14 +14,17 @@ import { toFilename } from '@/lib/download';
  * Builds the activity from stored data and streams back a single .html file.
  *
  * Generation runs on the server, not in the browser, because the word list
- * lives in the database. That also means one saved configuration set to RANDOM
- * selection produces a different file each time it is called — which is the
- * whole reason Assessment 2's word list beats Assessment 1's single fixed word.
+ * lives in the database. One saved configuration set to RANDOM selection
+ * therefore produces a different file each time it is called.
  *
- * Each call is logged to the Generation table, so a teacher can see which word
- * a particular handout used after the fact.
+ * Every attempt is recorded, successful or not. Assessment 2 logged only the
+ * successes, which made the failure rate unknowable — and an unknown failure
+ * rate reads as a zero one. Each exit path below goes through `succeed` or
+ * `failGeneration` so that no outcome can leave without being counted.
  */
 export async function POST(request, { params }) {
+  const startedAt = Date.now();
+
   try {
     const { id } = await params;
     const activityId = idParam.parse(id);
@@ -35,9 +34,10 @@ export async function POST(request, { params }) {
 
     const words = await wordsForActivity(activity);
     if (words.length === 0) {
-      return fail('That activity\u2019s word list is empty, so there is nothing to generate', {
-        status: 422,
+      return failGeneration(activity, startedAt, {
         code: 'EMPTY_WORD_LIST',
+        message:
+          'That activity’s word list is empty, so there is nothing to generate',
       });
     }
 
@@ -47,12 +47,45 @@ export async function POST(request, { params }) {
     const seed = Number.isInteger(body?.seed) ? body.seed : Date.now() % 100000;
 
     if (activity.type === 'WORDLE') {
-      return generateWordle(activity, words, seed);
+      return await generateWordle(activity, words, seed, startedAt);
     }
-    return generateWordSearchFile(activity, words, seed);
+    return await generateWordSearchFile(activity, words, seed, startedAt);
   } catch (error) {
     return handleError(error, 'POST /api/activities/:id/generate');
   }
+}
+
+/**
+ * Records a failed attempt, then returns the response the teacher sees.
+ *
+ * Recording first means the dashboard count and the teacher's error message
+ * can never disagree about what happened.
+ */
+async function failGeneration(activity, startedAt, { code, message }) {
+  await recordGenerationAttempt({
+    activityId: activity.id,
+    activityName: activity.name,
+    activityType: activity.type,
+    status: 'FAILED',
+    errorCode: code,
+    errorMessage: message,
+    durationMs: Date.now() - startedAt,
+  });
+
+  return fail(message, { status: 422, code });
+}
+
+async function succeed(activity, startedAt, { filename, wordCount, selectedWord }) {
+  await recordGenerationAttempt({
+    activityId: activity.id,
+    activityName: activity.name,
+    activityType: activity.type,
+    status: 'SUCCESS',
+    filename,
+    wordCount,
+    selectedWord: selectedWord ?? null,
+    durationMs: Date.now() - startedAt,
+  });
 }
 
 /** Deterministic pick from a seed, so a given seed always yields the same word. */
@@ -60,15 +93,16 @@ function pickWord(words, seed) {
   return words[seed % words.length];
 }
 
-async function generateWordle(activity, words, seed) {
+async function generateWordle(activity, words, seed, startedAt) {
   let target;
 
   if (activity.wordSelection === 'FIXED') {
     if (!activity.targetWord) {
-      return fail(
-        'This Wordle is set to a fixed word, but its target word is missing. It may have been deleted — choose a new one or switch to random selection.',
-        { status: 422, code: 'MISSING_TARGET' },
-      );
+      return failGeneration(activity, startedAt, {
+        code: 'MISSING_TARGET',
+        message:
+          'This Wordle is set to a fixed word, but its target word is missing. It may have been deleted — choose a new one or switch to random selection.',
+      });
     }
     target = toWordEntry(activity.targetWord);
   } else {
@@ -91,8 +125,7 @@ async function generateWordle(activity, words, seed) {
 
   const filename = toFilename('phoneme wordle', activity.name, target.english);
 
-  await recordGeneration({
-    activityId: activity.id,
+  await succeed(activity, startedAt, {
     filename,
     wordCount: 1,
     selectedWord: target.english,
@@ -101,7 +134,7 @@ async function generateWordle(activity, words, seed) {
   return htmlDownload(html, filename, { selectedWord: target.english });
 }
 
-async function generateWordSearchFile(activity, words, seed) {
+async function generateWordSearchFile(activity, words, seed, startedAt) {
   const rows = activity.gridRows ?? 10;
   const cols = activity.gridCols ?? 10;
 
@@ -116,10 +149,10 @@ async function generateWordSearchFile(activity, words, seed) {
 
   const minimum = minimumGridSize(chosen);
   if (rows < minimum || cols < minimum) {
-    return fail(
-      `The longest word needs ${minimum} cells, but the grid is ${rows}\u00d7${cols}. Increase the grid size on this activity.`,
-      { status: 422, code: 'GRID_TOO_SMALL' },
-    );
+    return failGeneration(activity, startedAt, {
+      code: 'GRID_TOO_SMALL',
+      message: `The longest word needs ${minimum} cells, but the grid is ${rows}×${cols}. Increase the grid size on this activity.`,
+    });
   }
 
   const puzzle = generateWordSearch(chosen, {
@@ -131,12 +164,12 @@ async function generateWordSearchFile(activity, words, seed) {
   });
 
   if (puzzle.unplaced.length) {
-    return fail(
-      `Could not fit ${puzzle.unplaced
+    return failGeneration(activity, startedAt, {
+      code: 'WORDS_UNPLACED',
+      message: `Could not fit ${puzzle.unplaced
         .map((entry) => entry.word)
-        .join(', ')} into a ${rows}\u00d7${cols} grid. Enlarge the grid, allow diagonals, or lower the word limit.`,
-      { status: 422, code: 'WORDS_UNPLACED' },
-    );
+        .join(', ')} into a ${rows}×${cols} grid. Enlarge the grid, allow diagonals, or lower the word limit.`,
+    });
   }
 
   const html = buildWordSearchHtml({
@@ -153,8 +186,7 @@ async function generateWordSearchFile(activity, words, seed) {
 
   const filename = toFilename('phoneme word search', activity.name);
 
-  await recordGeneration({
-    activityId: activity.id,
+  await succeed(activity, startedAt, {
     filename,
     wordCount: puzzle.placements.length,
   });

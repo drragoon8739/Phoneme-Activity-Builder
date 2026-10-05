@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 
 import { fieldErrors } from './validation';
+import { recordEvent } from './instrumentation';
 
 /**
  * One response shape for every endpoint.
@@ -61,60 +62,91 @@ export function notFound(what = 'Resource') {
  * as a raw 500 would tell a teacher "something went wrong" when the real
  * problem is that they used a name twice, which they can fix themselves.
  */
-export function handleError(error, context = 'request') {
-  if (error instanceof ZodError) {
-    return fail('Some fields need attention', {
-      status: 422,
-      code: 'VALIDATION_FAILED',
-      fields: fieldErrors(error),
+export async function handleError(error, context = 'request') {
+  const classified = classify(error, context);
+
+  // Rejections are recorded so the dashboard can report them. A 404 is left
+  // out on purpose: a request for something that does not exist is ordinary
+  // traffic, not a signal, and logging it would bury the entries that matter.
+  if (classified.status !== 404) {
+    await recordEvent({
+      level: classified.status >= 500 ? 'error' : 'warning',
+      code: classified.code,
+      message: classified.message,
+      source: context,
+      context: classified.fields ? { fields: classified.fields } : undefined,
     });
   }
 
+  return fail(classified.message, {
+    status: classified.status,
+    code: classified.code,
+    fields: classified.fields,
+  });
+}
+
+/** Maps a thrown value onto the status, code and message the caller will see. */
+function classify(error, context) {
+  if (error instanceof ZodError) {
+    return {
+      status: 422,
+      code: 'VALIDATION_FAILED',
+      message: 'Some fields need attention',
+      fields: fieldErrors(error),
+    };
+  }
+
   if (error instanceof SyntaxError) {
-    return fail('Request body was not valid JSON', {
+    return {
       status: 400,
       code: 'MALFORMED_JSON',
-    });
+      message: 'Request body was not valid JSON',
+    };
   }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
       case 'P2002':
-        return fail(duplicateMessage(error.meta?.target), {
+        return {
           status: 409,
           code: 'DUPLICATE',
-        });
+          message: duplicateMessage(error.meta?.target),
+        };
       case 'P2003':
-        return fail('That record refers to something that does not exist', {
+        return {
           status: 400,
           code: 'FOREIGN_KEY',
-        });
+          message: 'That record refers to something that does not exist',
+        };
       case 'P2025':
-        return fail('Record not found', { status: 404, code: 'NOT_FOUND' });
+        return { status: 404, code: 'NOT_FOUND', message: 'Record not found' };
       case 'P2014':
-        return fail('That change would break a required relationship', {
+        return {
           status: 409,
           code: 'RELATION_VIOLATION',
-        });
+          message: 'That change would break a required relationship',
+        };
       default:
         break;
     }
   }
 
   if (error instanceof Prisma.PrismaClientInitializationError) {
-    return fail('Could not reach the database. Has the migration been run?', {
+    return {
       status: 503,
       code: 'DATABASE_UNAVAILABLE',
-    });
+      message: 'Could not reach the database. Has the migration been run?',
+    };
   }
 
   // Anything unrecognised is a genuine bug: log it for the developer, and give
   // the caller a generic message rather than leaking a stack trace.
   console.error(`[api] unhandled error during ${context}:`, error);
-  return fail('Something went wrong on the server', {
+  return {
     status: 500,
     code: 'INTERNAL_ERROR',
-  });
+    message: 'Something went wrong on the server',
+  };
 }
 
 /** Parse a JSON body, converting an empty or malformed body into a clean 400. */

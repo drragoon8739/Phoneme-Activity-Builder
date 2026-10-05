@@ -164,3 +164,31 @@ export function fieldErrors(error) {
   }
   return result;
 }
+
+// --- Instrumentation --------------------------------------------------------
+
+/**
+ * A page-view beacon from the browser.
+ *
+ * Validated like any other input: the payload is sent by a client anyone can
+ * edit, so a hostile or buggy sender must not be able to write arbitrary text
+ * into the metrics table or distort the averages. Upper bounds are deliberate
+ * rather than generous — a page view longer than a day is not a reading
+ * session, and a path longer than 200 characters is not one of this app's
+ * routes.
+ */
+export const pageViewSchema = z.object({
+  path: z
+    .string()
+    .trim()
+    .min(1, 'path is required')
+    .max(200)
+    .startsWith('/', 'path must be a route beginning with /'),
+  sessionId: z.string().trim().min(1).max(64),
+  durationMs: z.coerce
+    .number()
+    .int()
+    .min(0, 'durationMs cannot be negative')
+    .max(24 * 60 * 60 * 1000, 'durationMs is implausibly large'),
+  startedAt: z.coerce.date().optional(),
+});

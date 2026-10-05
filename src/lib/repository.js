@@ -236,8 +236,3 @@ export async function wordsForActivity(activity) {
   return rows.map(toWordEntry);
 }
 
-export async function recordGeneration({ activityId, filename, wordCount, selectedWord }) {
-  return prisma.generation.create({
-    data: { activityId, filename, wordCount, selectedWord: selectedWord ?? null },
-  });
-}
