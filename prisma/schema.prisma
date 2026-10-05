@@ -177,23 +177,120 @@ model Activity {
   @@index([type])
 }
 
-/// A record of each generated .html file. Metadata only — the file itself is
-/// streamed to the teacher rather than stored, so nothing large lives here.
-/// Useful for the teacher ("what did I hand out on Tuesday?") and it gives the
-/// random-selection Wordle an audit trail of which word each file used.
+/// A record of every generation ATTEMPT — successful or not.
+///
+/// Assessment 2 logged successes only, which made "how often does generation
+/// fail, and why?" unanswerable. Recording the failures as well is what turns
+/// this table into an operational record rather than a download history.
+///
+/// The file itself is streamed to the teacher rather than stored, so nothing
+/// large lives here.
 model Generation {
   id Int @id @default(autoincrement())
 
-  activityId Int
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  /// Nullable, and the activity's name and type are copied in below.
+  ///
+  /// Deleting an activity must not erase the record that it was used: an
+  /// operational history that silently shrinks when someone tidies up is worse
+  /// than no history, because the numbers look right and are not. SetNull plus
+  /// the denormalised copies keeps every past attempt reportable.
+  activityId Int?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
 
-  filename  String
-  wordCount Int
+  /// Copied at generation time so the record survives the activity.
+  activityName String
+  /// "WORDLE" or "WORD_SEARCH".
+  activityType String
+
+  /// "SUCCESS" or "FAILED". Defaulted so rows written before this column
+  /// existed migrate correctly — at that point only successes were recorded.
+  status String @default("SUCCESS")
+
+  /// Null on failure: no file was produced.
+  filename String?
+
+  /// Words placed into the output. Zero on failure.
+  wordCount Int @default(0)
 
   /// For a random-selection Wordle, the word this particular file used.
   selectedWord String?
 
+  /// Machine-readable reason a generation failed, e.g. "GRID_TOO_SMALL".
+  errorCode String?
+  /// The message the teacher saw, kept so the dashboard can explain a failure
+  /// without the reader having to decode the error code.
+  errorMessage String?
+
+  /// Server-side duration. Nullable rather than zero-defaulted, so rows from
+  /// before this column existed are excluded from averages instead of dragging
+  /// them towards zero.
+  durationMs Int?
+
   createdAt DateTime @default(now())
 
   @@index([activityId])
+  @@index([status])
+  @@index([activityType])
+  @@index([createdAt])
+}
+
+/// One visit to one page, with how long the viewer stayed.
+///
+/// This is what "average time on page" is computed from. Storing the
+/// individual visits rather than a running average means the figure can be
+/// broken down by page, filtered by date, and recalculated if the definition
+/// changes — none of which a stored average allows.
+model PageView {
+  id Int @id @default(autoincrement())
+
+  /// Route the viewer was on, e.g. "/dashboard".
+  path String
+
+  /// Random per-browser-session identifier. Groups a visitor's pages together
+  /// without identifying the person: it is generated in the browser, held in
+  /// sessionStorage, and never tied to a name or an account.
+  sessionId String
+
+  /// Milliseconds the page was actually visible. Time spent on a hidden tab is
+  /// not counted, because it is not time the teacher spent reading.
+  durationMs Int
+
+  startedAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([path])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
+/// Notable things the server saw: rejected input, empty word lists reached at
+/// generation time, failures.
+///
+/// Generation failures live in `Generation` because they belong to an attempt.
+/// This table is for everything else worth surfacing — chiefly validation
+/// rejections, which otherwise leave no trace once the response is sent.
+model SystemEvent {
+  id Int @id @default(autoincrement())
+
+  /// "info", "warning" or "error".
+  level String
+
+  /// Machine-readable, e.g. "VALIDATION_FAILED", "DUPLICATE".
+  code String
+
+  /// Human-readable sentence, shown directly in the dashboard alerts panel.
+  message String
+
+  /// Where it happened, e.g. "POST /api/words".
+  source String?
+
+  /// Extra detail as a JSON string. SQLite has no JSON column type, so this is
+  /// stored as text and parsed on read; it is only ever displayed, never
+  /// queried, so a column type would buy nothing.
+  context String?
+
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
 }
