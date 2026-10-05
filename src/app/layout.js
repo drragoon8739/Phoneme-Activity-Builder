@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 
 import SiteHeader from '@/components/SiteHeader';
+import PageViewTracker from '@/components/PageViewTracker';
 import SiteFooter from '@/components/SiteFooter';
 import { PREFERENCES, PREFERENCE_KEYS, coercePreference } from '@/lib/preferences';
 
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }) {
         <a className="skip-link" href="#main">
           Skip to main content
         </a>
+        <PageViewTracker />
         <SiteHeader />
         <main id="main" className="shell page">
           {children}
