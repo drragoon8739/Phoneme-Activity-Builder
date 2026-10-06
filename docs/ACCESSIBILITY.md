@@ -137,3 +137,18 @@ same data, and it is now what the end-to-end tests assert against as well.
 - Lighthouse's automated checks catch roughly a third of WCAG criteria. They
   cannot tell whether the *wording* of an alert is understandable, or whether
   the reading order makes sense — those were reviewed by hand.
+
+---
+
+## Lighthouse result
+
+Audited on the production build (`npm run build && npm start`), desktop mode.
+
+| Page | Accessibility score |
+| --- | --- |
+| `/dashboard` | **96 / 100** |
+
+![Lighthouse accessibility score for the dashboard](load-testing/lighthouse-dashboard.png)
+
+One item remains flagged: a colour pair below the 4.5:1 contrast ratio. It is
+listed here as a known issue rather than hidden, and is the next fix.
