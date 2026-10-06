@@ -157,9 +157,12 @@ export default async function DashboardPage({ searchParams }) {
 
       <RecentGenerations generations={generations.recent} />
 
+      {/* Time on page goes in the wider column: its bars want the room, and
+          the word list table is compact. Put the short panel in the narrow
+          column and the gap below it is narrow too. */}
       <div className={styles.twoUp}>
-        <WordListReport wordLists={wordLists} />
         <EngagementReport engagement={engagement} />
+        <WordListReport wordLists={wordLists} />
       </div>
 
       <EventLog events={events} />

@@ -117,7 +117,11 @@ test.describe('Word list CRUD', () => {
     };
 
     await addChin();
-    await expect(page.getByRole('cell', { name: /chin/ })).toBeVisible();
+    // Exact match, not a substring. This app is full of words inside words:
+    // /tʃ/'s hint is "CH (as in chin)", so a cell *containing* "chin" matches
+    // both the spelling cell and the phoneme-tile cell, and Playwright treats
+    // that ambiguity as an error rather than guessing which one was meant.
+    await expect(page.getByRole('cell', { name: 'chin', exact: true })).toBeVisible();
 
     await addChin();
     await expect(page.getByText('That word is already in this list')).toBeVisible();

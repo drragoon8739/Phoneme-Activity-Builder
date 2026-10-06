@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phoneme Wordle</title>
+<meta name="generator" content="Phoneme Activity Builder">
+<meta name="author" content="David Huynh">
+<style>
+
+    :root {
+      --font-display: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+      --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-ipa: "Charis SIL", "Doulos SIL", "Gentium Plus", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+      --paper: #eaeff1;
+      --card: #ffffff;
+      --sunk: #f3f6f8;
+      --ink: #14212a;
+      --muted: #566873;
+      --line: #c8d5db;
+      --line-strong: #a9bbc4;
+      --brand: #7a2e56;
+      --brand-ink: #ffffff;
+      --brand-soft: #f4e5ed;
+      --correct: #2e7d53;
+      --correct-soft: #d9eee2;
+      --present: #9c6b06;
+      --present-soft: #faecca;
+      --absent: #6d818c;
+      --absent-soft: #e2e9ec;
+      --radius: 10px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px 16px 48px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .wrap { width: min(960px, 100%); margin: 0 auto; }
+
+    header.page-head { margin-bottom: 24px; }
+
+    .eyebrow {
+      font-family: var(--font-display);
+      font-size: 0.8125rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 4px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 4vw, 2.25rem);
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+
+    .sub { color: var(--muted); margin: 0; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1rem;
+      min-height: 44px;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      background: var(--brand);
+      color: var(--brand-ink);
+      cursor: pointer;
+    }
+
+    .btn:hover { filter: brightness(1.08); }
+
+    .btn.secondary {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--line-strong);
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    :focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    /* The phoneme tile, carried over from the builder so the activity and the
+       tool a teacher previewed it in look like the same product. */
+    .tile {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-width: 3.25rem;
+      min-height: 3.25rem;
+      padding: 4px 6px;
+      background: var(--sunk);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      color: var(--ink);
+      line-height: 1;
+      font: inherit;
+    }
+
+    .tile .glyph { font-family: var(--font-ipa); font-size: 1.3rem; font-weight: 600; }
+    .tile .gloss {
+      font-family: var(--font-display);
+      font-size: 0.625rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    button.tile { cursor: pointer; }
+    button.tile:hover { border-color: var(--brand); background: var(--brand-soft); }
+    button.tile:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .tile.correct { background: var(--correct-soft); border-color: var(--correct); box-shadow: inset 0 0 0 2px var(--correct); }
+    .tile.present { background: var(--present-soft); border-color: var(--present); box-shadow: inset 0 0 0 2px var(--present); }
+    .tile.absent  { background: var(--absent-soft); border-color: var(--absent); color: var(--muted); }
+
+    .hint {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      white-space: nowrap;
+      padding: 5px 9px;
+      border-radius: 6px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 0.8125rem;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 150ms ease;
+    }
+
+    .hint b { font-family: var(--font-ipa); color: var(--brand); margin-right: 6px; }
+
+    .hint::after {
+      content: '';
+      position: absolute; top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--ink);
+    }
+
+    .tile:hover > .hint, .tile:focus-visible > .hint { opacity: 1; visibility: visible; }
+
+    .status {
+      border-left: 4px solid var(--brand);
+      background: var(--brand-soft);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin-bottom: 16px;
+    }
+
+    .status.win { border-left-color: var(--correct); background: var(--correct-soft); }
+    .status.lose { border-left-color: var(--present); background: var(--present-soft); }
+
+    footer.page-foot {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.8125rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+    }
+  
+
+  .board { display: grid; gap: 8px; justify-content: start; margin-bottom: 20px; }
+  .board-row { display: flex; gap: 8px; }
+  .board .tile { min-width: 3.5rem; min-height: 3.5rem; }
+  .board .tile.filled { border-color: var(--brand); }
+
+  .kb { display: flex; flex-direction: column; gap: 8px; }
+  .kb-row { display: grid; grid-template-columns: 6.5rem 1fr; align-items: center; gap: 12px; }
+  .kb-label {
+    font-family: var(--font-display); font-size: 0.6875rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); text-align: right;
+    border-right: 1px solid var(--line); padding-right: 12px; min-height: 1.2em;
+  }
+  .kb-keys { display: flex; flex-wrap: wrap; gap: 6px; }
+  .kb-keys .tile { min-width: 2.6rem; min-height: 2.6rem; }
+  .kb-keys .tile .glyph { font-size: 1.05rem; }
+
+  .answer-reveal {
+    font-family: var(--font-display); font-size: 1.25rem; margin-top: 8px;
+  }
+  .answer-reveal .english { color: var(--correct); font-weight: 700; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.8125rem; color: var(--muted); margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+  @media (max-width: 620px) {
+    .kb-row { grid-template-columns: 1fr; gap: 2px; }
+    .kb-label { text-align: left; border-right: 0; border-left: 2px solid var(--brand); padding-right: 0; padding-left: 8px; }
+    .kb-label:empty { display: none; }
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page-head">
+  <p class="eyebrow">Phoneme activity</p>
+  <h1>Phoneme Wordle</h1>
+  <p class="sub">Build the hidden word using the phoneme keyboard.</p>
+</header>
+
+<div class="card">
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+  <div id="board" class="board" role="group" aria-label="Guesses"></div>
+  <div id="reveal" hidden></div>
+  <div class="btn-row">
+    <button type="button" id="check" class="btn">Check word</button>
+    <button type="button" id="undo" class="btn secondary">Delete</button>
+    <button type="button" id="restart" class="btn secondary">Start again</button>
+  </div>
+  <div class="legend">
+    <span><i class="swatch" style="background: var(--correct)"></i> Right phoneme, right place</span>
+    <span><i class="swatch" style="background: var(--present)"></i> In the word, wrong place</span>
+    <span><i class="swatch" style="background: var(--absent)"></i> Not in the word</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="eyebrow">Phoneme keyboard</h2>
+  <p class="sub">Hover or focus a key to see its English equivalent.</p>
+  <div id="keyboard" class="kb"></div>
+</div>
+
+<footer class="page-foot">
+  <p>Generated with the Phoneme Activity Builder — David Huynh · 22428106</p>
+  <p>Runs offline in any modern browser. No internet connection required.</p>
+</footer>
+</div>
+<script>
+window.__ACTIVITY__ = {"answer":["b","l","e","n","d"],"english":"blend","attempts":6,"showHints":true,"keyboard":[["p","t","k"],["b","d","ɡ"],["n","m","ŋ"],["f","s","θ","ʃ"],["v","z","ð","ʒ"],["l","ɹ","w","j"],["h","tʃ","dʒ"],["iː","ɪ","e","eː"],["æ","ɐ","ɐː","ɜː"],["ʉː","ɔ","oː","ʊ"],["æɪ","ɑe","oɪ","əʉ"],["æɔ","ɪə","ə"]],"keyboardLabels":["Plosives","","Nasals","Fricatives","","Approximants","Affricates","Vowels","","","Diphthongs",""],"phonemes":[{"ipa":"p","label":"P","example":"pin"},{"ipa":"t","label":"T","example":"tin"},{"ipa":"k","label":"K","example":"kit"},{"ipa":"b","label":"B","example":"bed"},{"ipa":"d","label":"D","example":"desk"},{"ipa":"ɡ","label":"G","example":"gum"},{"ipa":"n","label":"N","example":"net"},{"ipa":"m","label":"M","example":"map"},{"ipa":"ŋ","label":"NG","example":"ring"},{"ipa":"f","label":"F","example":"fan"},{"ipa":"s","label":"S","example":"sun"},{"ipa":"θ","label":"TH","example":"thin"},{"ipa":"ʃ","label":"SH","example":"ship"},{"ipa":"v","label":"V","example":"van"},{"ipa":"z","label":"Z","example":"zip"},{"ipa":"ð","label":"TH","example":"then"},{"ipa":"ʒ","label":"ZH","example":"measure"},{"ipa":"h","label":"H","example":"hat"},{"ipa":"l","label":"L","example":"log"},{"ipa":"ɹ","label":"R","example":"ring"},{"ipa":"w","label":"W","example":"win"},{"ipa":"j","label":"Y","example":"yes"},{"ipa":"tʃ","label":"CH","example":"chin"},{"ipa":"dʒ","label":"J","example":"jam"},{"ipa":"iː","label":"EE","example":"street"},{"ipa":"ɪ","label":"I","example":"bid"},{"ipa":"e","label":"E","example":"bed"},{"ipa":"eː","label":"AIR","example":"square"},{"ipa":"æ","label":"A","example":"bad"},{"ipa":"ɐ","label":"U","example":"bud"},{"ipa":"ɐː","label":"AR","example":"bark"},{"ipa":"ɜː","label":"ER","example":"bird"},{"ipa":"ʉː","label":"OO","example":"boot"},{"ipa":"ɔ","label":"O","example":"log"},{"ipa":"oː","label":"OR","example":"fork"},{"ipa":"ʊ","label":"U","example":"book"},{"ipa":"æɪ","label":"AY","example":"bait"},{"ipa":"ɑe","label":"IE","example":"bike"},{"ipa":"oɪ","label":"OY","example":"boil"},{"ipa":"əʉ","label":"OH","example":"boat"},{"ipa":"æɔ","label":"OW","example":"cloud"},{"ipa":"ɪə","label":"EAR","example":"beard"},{"ipa":"ə","label":"UH","example":"wɜːdəl"}]};
+
+(function () {
+  var CONFIG = window.__ACTIVITY__;
+  var REF = {};
+  CONFIG.phonemes.forEach(function (p) { REF[p.ipa] = p; });
+
+  var answer = CONFIG.answer;
+  var attempts = CONFIG.attempts;
+  var guesses = [];
+  var current = [];
+  var finished = false;
+
+  var boardEl = document.getElementById('board');
+  var kbEl = document.getElementById('keyboard');
+  var statusEl = document.getElementById('status');
+  var revealEl = document.getElementById('reveal');
+
+  function hintHtml(ipa) {
+    var p = REF[ipa];
+    if (!p || !CONFIG.showHints) return '';
+    return '<span class="hint"><b>/' + ipa + '/</b>' + p.label + ' (as in ' + p.example + ')</span>';
+  }
+
+  function describe(ipa) {
+    var p = REF[ipa];
+    if (!p) return ipa;
+    return '/' + ipa + '/ — ' + p.label + ' (as in ' + p.example + ')';
+  }
+
+  function tileHtml(ipa, state, extraClass) {
+    var p = REF[ipa];
+    var classes = ['tile'];
+    if (state) classes.push(state);
+    if (extraClass) classes.push(extraClass);
+    if (ipa) classes.push('filled');
+    var label = ipa ? ' aria-label="' + describe(ipa) + '" title="' + describe(ipa) + '"' : ' aria-label="Empty"';
+    return '<div class="' + classes.join(' ') + '"' + label + '>' +
+      '<span class="glyph">' + (ipa || '') + '</span>' +
+      '<span class="gloss">' + (p && CONFIG.showHints ? p.label : '') + '</span>' +
+      hintHtml(ipa) +
+      '</div>';
+  }
+
+  function score(guess) {
+    var result = [];
+    var remaining = {};
+    var i;
+    for (i = 0; i < answer.length; i++) result.push('absent');
+    for (i = 0; i < answer.length; i++) {
+      if (guess[i] === answer[i]) {
+        result[i] = 'correct';
+      } else {
+        remaining[answer[i]] = (remaining[answer[i]] || 0) + 1;
+      }
+    }
+    for (i = 0; i < guess.length; i++) {
+      if (result[i] === 'correct') continue;
+      if (remaining[guess[i]] > 0) {
+        result[i] = 'present';
+        remaining[guess[i]] -= 1;
+      }
+    }
+    return result;
+  }
+
+  function renderBoard() {
+    var html = '';
+    var r, c;
+    for (r = 0; r < attempts; r++) {
+      html += '<div class="board-row">';
+      var guess = guesses[r];
+      var marks = guess ? score(guess) : null;
+      for (c = 0; c < answer.length; c++) {
+        if (guess) {
+          html += tileHtml(guess[c], marks[c]);
+        } else if (r === guesses.length) {
+          html += tileHtml(current[c] || '', null);
+        } else {
+          html += tileHtml('', null);
+        }
+      }
+      html += '</div>';
+    }
+    boardEl.innerHTML = html;
+  }
+
+  function bestStatuses() {
+    var rank = { absent: 0, present: 1, correct: 2 };
+    var statuses = {};
+    guesses.forEach(function (guess) {
+      var marks = score(guess);
+      guess.forEach(function (ipa, i) {
+        var next = marks[i];
+        if (!statuses[ipa] || rank[next] > rank[statuses[ipa]]) statuses[ipa] = next;
+      });
+    });
+    return statuses;
+  }
+
+  function renderKeyboard() {
+    var statuses = bestStatuses();
+    var html = '';
+    CONFIG.keyboard.forEach(function (row, index) {
+      var label = CONFIG.keyboardLabels[index] || '';
+      html += '<div class="kb-row"><span class="kb-label" aria-hidden="true">' +
+        label + '</span><div class="kb-keys">';
+      row.forEach(function (ipa) {
+        var p = REF[ipa];
+        html += '<button type="button" class="tile ' + (statuses[ipa] || '') + '" data-ipa="' + ipa +
+          '" aria-label="' + describe(ipa) + '" title="' + describe(ipa) + '"' +
+          (finished ? ' disabled' : '') + '>' +
+          '<span class="glyph">' + ipa + '</span>' +
+          '<span class="gloss">' + (p ? p.label : '') + '</span>' +
+          hintHtml(ipa) +
+          '</button>';
+      });
+      html += '</div></div>';
+    });
+    kbEl.innerHTML = html;
+  }
+
+  function say(message, tone) {
+    statusEl.className = 'status' + (tone ? ' ' + tone : '');
+    statusEl.textContent = message;
+  }
+
+  function reveal(won) {
+    var strip = answer.map(function (ipa) { return '/' + ipa + '/'; }).join(' ');
+    revealEl.innerHTML = '<p class="answer-reveal">' + strip +
+      ' = <span class="english">' + CONFIG.english + '</span></p>';
+    revealEl.hidden = false;
+    if (won) {
+      say('Solved in ' + guesses.length + (guesses.length === 1 ? ' guess.' : ' guesses.'), 'win');
+    } else {
+      say('Out of attempts. The word was ' + CONFIG.english + '.', 'lose');
+    }
+  }
+
+  function submit() {
+    if (finished) return;
+    if (current.length !== answer.length) {
+      say('Choose ' + answer.length + ' phonemes before checking.');
+      return;
+    }
+    guesses.push(current.slice());
+    var solved = current.join(' ') === answer.join(' ');
+    current = [];
+    renderBoard();
+    renderKeyboard();
+    if (solved) {
+      finished = true;
+      reveal(true);
+    } else if (guesses.length >= attempts) {
+      finished = true;
+      reveal(false);
+    } else {
+      say('Attempt ' + (guesses.length + 1) + ' of ' + attempts + '. Green is in the right place, amber is in the word but elsewhere.');
+      renderKeyboard();
+    }
+  }
+
+  function reset() {
+    guesses = [];
+    current = [];
+    finished = false;
+    revealEl.hidden = true;
+    revealEl.innerHTML = '';
+    say('Attempt 1 of ' + attempts + '. Build a word from the phoneme keyboard, then choose Check word.');
+    renderBoard();
+    renderKeyboard();
+  }
+
+  kbEl.addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-ipa]');
+    if (!button || finished) return;
+    if (current.length >= answer.length) {
+      say('That is ' + answer.length + ' phonemes. Check the word, or use Delete.');
+      return;
+    }
+    current.push(button.getAttribute('data-ipa'));
+    renderBoard();
+  });
+
+  document.getElementById('check').addEventListener('click', submit);
+  document.getElementById('undo').addEventListener('click', function () {
+    if (finished || current.length === 0) return;
+    current.pop();
+    renderBoard();
+  });
+  document.getElementById('restart').addEventListener('click', reset);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') submit();
+    if (event.key === 'Backspace' && document.activeElement === document.body) {
+      if (!finished && current.length) { current.pop(); renderBoard(); }
+    }
+  });
+
+  reset();
+})();
+
+</script>
+</body>
+</html>

@@ -70,17 +70,20 @@ export function formatRelative(value) {
   const seconds = Math.round((Date.now() - date.getTime()) / 1000);
   if (seconds < 45) return 'just now';
 
+  // Each unit carries its own rollover point, because they differ: sixty
+  // minutes make an hour but only twenty-four hours make a day. Using one
+  // multiplier for all of them reported two-day-old events as "48 hours ago".
   const units = [
-    ['minute', 60],
-    ['hour', 3600],
-    ['day', 86400],
-    ['week', 604800],
+    ['minute', 60, 60],
+    ['hour', 3600, 24],
+    ['day', 86400, 7],
+    ['week', 604800, Infinity],
   ];
 
   let label = 'week';
   let size = 604800;
-  for (const [unit, unitSeconds] of units) {
-    if (seconds < unitSeconds * 60 || unit === 'week') {
+  for (const [unit, unitSeconds, rollover] of units) {
+    if (seconds < unitSeconds * rollover) {
       label = unit;
       size = unitSeconds;
       break;

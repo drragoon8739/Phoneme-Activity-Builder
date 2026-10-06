@@ -9,8 +9,8 @@
 export const STUDENT = {
   name: 'David Huynh',
   studentNumber: '22428106',
-  subject: 'Backend Implementation and Database Integration',
-  assessment: 'Assessment 2',
+  subject: 'Data-Driven Web Application and Reporting',
+  assessment: 'Assessment 3',
   institution: 'La Trobe University',
   // Paste the share link for your walkthrough video (YouTube unlisted,
   // OneDrive, Google Drive, etc.). Leave blank to hide the embed.
